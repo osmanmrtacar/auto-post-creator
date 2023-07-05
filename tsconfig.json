@@ -7,5 +7,7 @@
   "include": [
     "src/**/*.ts",
     "test/**/*.ts"
-  ]
+  ],
+  "extends": "@tsconfig/node16/tsconfig.json"
+
 }
