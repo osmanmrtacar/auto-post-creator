@@ -116,7 +116,7 @@ export const handler: Handler = async (
     TableName: promptsTableName,
     FilterExpression: '#type = :type and #active = :active',
     ExpressionAttributeValues: {
-      ':type': Number(PROMPT_TYPES.CLASSIFY),
+      ':type': PROMPT_TYPES.CLASSIFY,
       ':active': true,
     },
     ExpressionAttributeNames: {
@@ -141,6 +141,12 @@ export const handler: Handler = async (
     },
     Limit: 1,
   });
+
+  console.log(JSON.stringify(classifyPrompts));
+  console.log(JSON.stringify(classifyPrompts?.Items));
+
+  console.log(JSON.stringify({tweetPrompts}));
+  console.log(JSON.stringify(tweetPrompts?.Items));
 
   const activeClassifyPrompt = classifyPrompts?.Items?.[0];
   const activeTweetPrompt = tweetPrompts?.Items?.[0];
