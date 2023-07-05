@@ -176,6 +176,8 @@ export const handler: Handler = async (
     })
   );
 
+  console.log(shareablePosts.length);
+
   for await (const post of posts) {
     await ddbDocClient.put({
       TableName: tweetsTable,
@@ -193,17 +195,15 @@ export const handler: Handler = async (
     const answer = JSON.parse(newTweet ?? '{}')?.target_audience_tweet;
 
     if (!answer) {
-      if (!activeClassifyPrompt) {
-        return callback(null, {
-          statusCode: 404,
-          body: JSON.stringify({
-            type: 4,
-            data: {
-              content: 'No Answer',
-            },
-          }),
-        });
-      }
+      return callback(null, {
+        statusCode: 404,
+        body: JSON.stringify({
+          type: 4,
+          data: {
+            content: 'No Answer',
+          },
+        }),
+      });
     }
     await ddbDocClient.put({
       TableName: tweetsTable,
