@@ -112,44 +112,23 @@ export const handler: Handler = async (
     via: string | undefined;
   }[] = [];
 
-  const classifyPrompts = await ddbDocClient.scan({
+  const allPrompts = await ddbDocClient.scan({
     TableName: promptsTableName,
-    FilterExpression: '#type = :type and #active = :active',
+    FilterExpression: '#active = :active',
     ExpressionAttributeValues: {
-      ':type': PROMPT_TYPES.CLASSIFY,
       ':active': true,
     },
     ExpressionAttributeNames: {
-      '#type': 'type',
       '#active': 'active',
     },
-    Limit: 1,
   });
 
-  console.log(PROMPT_TYPES.CLASSIFY);
-
-  const tweetPrompts = await ddbDocClient.scan({
-    TableName: promptsTableName,
-    FilterExpression: '#type = :type and #active = :active',
-    ExpressionAttributeValues: {
-      ':type': PROMPT_TYPES.TWITTER,
-      ':active': true,
-    },
-    ExpressionAttributeNames: {
-      '#type': 'type',
-      '#active': 'active',
-    },
-    Limit: 1,
-  });
-
-  console.log(JSON.stringify(classifyPrompts));
-  console.log(JSON.stringify(classifyPrompts?.Items));
-
-  console.log(JSON.stringify({tweetPrompts}));
-  console.log(JSON.stringify(tweetPrompts?.Items));
-
-  const activeClassifyPrompt = classifyPrompts?.Items?.[0];
-  const activeTweetPrompt = tweetPrompts?.Items?.[0];
+  const activeClassifyPrompt = allPrompts?.Items?.find(
+    item => item.type === PROMPT_TYPES.CLASSIFY
+  );
+  const activeTweetPrompt = allPrompts?.Items?.find(
+    item => item.type === PROMPT_TYPES.TWITTER
+  );
 
   console.log(!!activeClassifyPrompt);
 
