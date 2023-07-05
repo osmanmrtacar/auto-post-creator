@@ -190,7 +190,21 @@ export const handler: Handler = async (
       iterator.fullText ?? '',
       activeTweetPrompt?.prompt
     );
-    const answer = JSON.parse(newTweet ?? '{}')?.answer;
+    const answer = JSON.parse(newTweet ?? '{}')?.target_audience_tweet;
+
+    if (!answer) {
+      if (!activeClassifyPrompt) {
+        return callback(null, {
+          statusCode: 404,
+          body: JSON.stringify({
+            type: 4,
+            data: {
+              content: 'No Answer',
+            },
+          }),
+        });
+      }
+    }
     await ddbDocClient.put({
       TableName: tweetsTable,
       Item: {
