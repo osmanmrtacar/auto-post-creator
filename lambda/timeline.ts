@@ -126,7 +126,7 @@ export const handler: Handler = async (
     Limit: 1,
   });
 
-  console.log(JSON.stringify(typeof PROMPT_TYPES.CLASSIFY));
+  console.log(PROMPT_TYPES.CLASSIFY);
 
   const tweetPrompts = await ddbDocClient.scan({
     TableName: promptsTableName,
