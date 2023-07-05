@@ -116,7 +116,7 @@ export const handler: Handler = async (
     TableName: promptsTableName,
     FilterExpression: '#type = :type and #active = :active',
     ExpressionAttributeValues: {
-      ':type': PROMPT_TYPES.CLASSIFY,
+      ':type': Number(PROMPT_TYPES.CLASSIFY),
       ':active': true,
     },
     ExpressionAttributeNames: {
@@ -125,6 +125,8 @@ export const handler: Handler = async (
     },
     Limit: 1,
   });
+
+  console.log(JSON.stringify(typeof PROMPT_TYPES.CLASSIFY));
 
   const tweetPrompts = await ddbDocClient.scan({
     TableName: promptsTableName,
