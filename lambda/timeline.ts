@@ -145,6 +145,18 @@ export const handler: Handler = async (
 
   console.log(!!activeClassifyPrompt);
 
+  if (!activeClassifyPrompt) {
+    return callback(null, {
+      statusCode: 404,
+      body: JSON.stringify({
+        type: 4,
+        data: {
+          content: 'Hello, World.',
+        },
+      }),
+    });
+  }
+
   await Promise.all(
     posts.map(async tweet => {
       if (tweet.fullText) {
