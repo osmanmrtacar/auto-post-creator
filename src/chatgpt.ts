@@ -9,7 +9,7 @@ export class Chatgpt {
     this.openai = new OpenAIApi(configuration);
   }
 
-  async classifyTweet(message: string, prompt: string) {
+  async sendRequest(message: string, prompt: string) {
     const completion = await this.openai.createChatCompletion({
       model: 'gpt-3.5-turbo-0613',
       temperature: 1,

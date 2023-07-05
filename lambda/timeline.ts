@@ -6,6 +6,7 @@ import {
 } from 'aws-lambda';
 import axios from 'axios';
 import {
+  CLASSIFY_RESPONSE,
   ExtendedEntities,
   Medum,
   Medum2,
@@ -23,7 +24,19 @@ import {DynamoDBDocument} from '@aws-sdk/lib-dynamodb';
 
 const enum PROMPT_TYPES {
   CLASSIFY = 1,
+  TWITTER = 2,
 }
+
+const CLASSIFICATION_CATEGORIES = {
+  MOVIE: 'Movie',
+  TV: 'TV Shows',
+  MUSIC: 'Music',
+  PERSON: 'Person',
+  TRAVEL: 'Travel',
+  FINANCE: 'Finance',
+  CRYPTO: ' Digital Assets & Crypto',
+  NAN: 'NaN',
+};
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -92,14 +105,14 @@ export const handler: Handler = async (
 
   const shareablePosts: {
     id: string;
-    resp: string | undefined;
+    categories?: CLASSIFY_RESPONSE;
     media: string[] | undefined;
     fullText: string | undefined;
     postId: string | undefined;
     via: string | undefined;
   }[] = [];
 
-  const queryResponse = await ddbDocClient.scan({
+  const classifyPrompts = await ddbDocClient.scan({
     TableName: promptsTableName,
     FilterExpression: '#type = :type and #active = :active',
     ExpressionAttributeValues: {
@@ -113,20 +126,50 @@ export const handler: Handler = async (
     Limit: 1,
   });
 
-  const activeClassifyPrompt = queryResponse?.Items?.[0];
+  const tweetPrompts = await ddbDocClient.scan({
+    TableName: promptsTableName,
+    FilterExpression: '#type = :type and #active = :active',
+    ExpressionAttributeValues: {
+      ':type': PROMPT_TYPES.TWITTER,
+      ':active': true,
+    },
+    ExpressionAttributeNames: {
+      '#type': 'type',
+      '#active': 'active',
+    },
+    Limit: 1,
+  });
+
+  const activeClassifyPrompt = classifyPrompts?.Items?.[0];
+  const activeTweetPrompt = tweetPrompts?.Items?.[0];
 
   console.log(!!activeClassifyPrompt);
 
   await Promise.all(
-    posts.map(async cl => {
-      if (cl.fullText) {
-        const resp = await chatgpt.classifyTweet(
-          cl.fullText,
+    posts.map(async tweet => {
+      if (tweet.fullText) {
+        const resp = await chatgpt.sendRequest(
+          tweet.fullText,
           activeClassifyPrompt?.prompt
         );
 
-        if (!resp?.toLocaleLowerCase().includes('unrelated')) {
-          shareablePosts.push({...cl, resp});
+        let parsedResp: CLASSIFY_RESPONSE = {};
+
+        try {
+          parsedResp = JSON.parse(resp ?? '{}');
+        } catch (error) {
+          console.log(JSON.stringify(error));
+        }
+
+        const {primary, secondary} = parsedResp;
+
+        if (
+          primary === CLASSIFICATION_CATEGORIES.MOVIE ||
+          primary === CLASSIFICATION_CATEGORIES.TV ||
+          secondary === CLASSIFICATION_CATEGORIES.MOVIE ||
+          secondary === CLASSIFICATION_CATEGORIES.TV
+        ) {
+          shareablePosts.push({...tweet, categories: parsedResp});
         }
       }
 
@@ -144,20 +187,27 @@ export const handler: Handler = async (
   }
 
   for await (const iterator of shareablePosts.slice(0, 3)) {
+    const newTweet = await chatgpt.sendRequest(
+      iterator.fullText ?? '',
+      activeTweetPrompt?.prompt
+    );
+    const answer = JSON.parse(newTweet ?? '{}')?.answer;
     await ddbDocClient.put({
       TableName: tweetsTable,
       Item: {
         tweetId: iterator.id,
         sentDm: true,
-        chatgpt: iterator.resp,
+        categories: iterator.categories,
+        newTweet: answer,
       },
     });
+
     await twitter.sendDm(
       '1674386938789232640',
-      iterator.resp + '\n' + iterator.media?.join('\n')
+      answer + '\n' + iterator.media?.join('\n')
     );
 
-    await sleep(5000);
+    await sleep(1000);
   }
 
   return callback(null, {

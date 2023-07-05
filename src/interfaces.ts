@@ -1036,3 +1036,8 @@ export interface Metadata {
 export interface ScribeConfig {
   page: string;
 }
+
+export interface CLASSIFY_RESPONSE {
+  primary?: string;
+  secondary?: string;
+}
