@@ -103,6 +103,10 @@ export const handler: Handler = async (
     Object.keys(seenTweetIdLookup)
   );
 
+  if (!posts.length) {
+    return callback('no posts');
+  }
+
   const shareablePosts: {
     id: string;
     categories?: CLASSIFY_RESPONSE;
@@ -157,7 +161,7 @@ export const handler: Handler = async (
         try {
           parsedResp = JSON.parse(resp ?? '{}');
         } catch (error) {
-          console.log(JSON.stringify(error));
+          console.log(JSON.stringify({error}));
         }
 
         const {primary, secondary} = parsedResp;
@@ -176,7 +180,7 @@ export const handler: Handler = async (
     })
   );
 
-  console.log(shareablePosts.length);
+  console.log(JSON.stringify({shareablePosts: shareablePosts.length}));
 
   for await (const post of posts) {
     await ddbDocClient.put({
@@ -195,15 +199,7 @@ export const handler: Handler = async (
     const answer = JSON.parse(newTweet ?? '{}')?.target_audience_tweet;
 
     if (!answer) {
-      return callback(null, {
-        statusCode: 404,
-        body: JSON.stringify({
-          type: 4,
-          data: {
-            content: 'No Answer',
-          },
-        }),
-      });
+      return callback('No Answer');
     }
     await ddbDocClient.put({
       TableName: tweetsTable,

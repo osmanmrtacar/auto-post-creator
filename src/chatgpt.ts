@@ -11,7 +11,7 @@ export class Chatgpt {
 
   async sendRequest(message: string, prompt: string) {
     const completion = await this.openai.createChatCompletion({
-      model: 'gpt-3.5-turbo-0613',
+      model: 'gpt-4-0613',
       temperature: 1,
       top_p: 1,
       messages: [
