@@ -89,13 +89,15 @@ export class Twitter {
           tweetResult?.core?.user_results.result.legacy.followers_count ?? 0;
         const tweetLanguage = tweetResult?.legacy?.lang;
         const retweetCount = tweetResult?.legacy?.retweet_count ?? 0;
+        const favoriteCount = tweetResult?.legacy?.favorite_count ?? 0;
 
         if (
           tweetResult?.legacy?.id_str &&
           !(tweetResult?.legacy.id_str in seenTweetIdLookup) &&
           !entry.entryId.includes('promoted') &&
           followersCount > 50000 &&
-          retweetCount > 800 &&
+          (retweetCount > 5000 ||
+            (retweetCount > 500 && favoriteCount > 5000)) &&
           tweetLanguage === 'en'
         ) {
           posts.push({
