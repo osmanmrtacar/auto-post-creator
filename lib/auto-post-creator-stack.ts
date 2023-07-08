@@ -60,6 +60,7 @@ export class AutoPostCreatorStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(30),
       role: lambdaRole,
       functionName: 'TimeLineLambda',
+      retryAttempts: 1,
       environment: {
         CREDENTIALS_TABLE: credentialsTable.tableName,
         PROMPTS_TABLE: promptsTable.tableName,
