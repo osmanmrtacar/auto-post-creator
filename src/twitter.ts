@@ -74,6 +74,14 @@ export class Twitter {
       via: string | undefined;
     }[] = [];
 
+    console.log(
+      JSON.stringify({
+        timeLineResponse:
+          timeLineResponse.data.home.home_timeline_urt.instructions[0].entries
+            .length,
+      })
+    );
+
     timeLineResponse.data.home.home_timeline_urt.instructions?.forEach(ins => {
       ins.entries?.forEach(entry => {
         const tweetResult = entry.content.itemContent?.tweet_results.result;
@@ -102,10 +110,6 @@ export class Twitter {
         }
       });
     });
-
-    if (!posts.length) {
-      console.log(JSON.stringify({response: timeLineResponse}));
-    }
 
     return posts;
   }
