@@ -1,3 +1,4 @@
+import {AxiosError} from 'axios';
 import {Configuration, OpenAIApi} from 'openai';
 
 export class Chatgpt {
@@ -10,19 +11,25 @@ export class Chatgpt {
   }
 
   async sendRequest(message: string, prompt: string) {
-    const completion = await this.openai.createChatCompletion({
-      model: 'gpt-4-0613',
-      temperature: 1,
-      top_p: 1,
-      messages: [
-        {
-          role: 'system',
-          content: prompt,
-        },
-        {role: 'user', content: message},
-      ],
-    });
+    try {
+      const completion = await this.openai.createChatCompletion({
+        model: 'gpt-3.5-turbo-0613',
+        temperature: 1,
+        top_p: 1,
+        messages: [
+          {
+            role: 'system',
+            content: prompt,
+          },
+          {role: 'user', content: message},
+        ],
+      });
 
-    return completion.data.choices[0].message?.content;
+      return completion.data.choices[0].message?.content;
+    } catch (error: unknown) {
+      if (error instanceof AxiosError) {
+        console.log(JSON.stringify({chatgptError: error.response?.data}));
+      }
+    }
   }
 }
