@@ -103,6 +103,10 @@ export class Twitter {
       });
     });
 
+    if (!posts.length) {
+      console.log(JSON.stringify({response: timeLineResponse}));
+    }
+
     return posts;
   }
 
