@@ -1041,3 +1041,10 @@ export interface CLASSIFY_RESPONSE {
   primary?: string;
   secondary?: string;
 }
+
+export interface TwitterPost {
+  id?: string;
+  media?: string[];
+  fullText: string;
+  postId?: string;
+}

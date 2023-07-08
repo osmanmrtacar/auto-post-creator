@@ -4,39 +4,18 @@ import {
   Context,
   Handler,
 } from 'aws-lambda';
-import axios from 'axios';
-import {
-  CLASSIFY_RESPONSE,
-  ExtendedEntities,
-  Medum,
-  Medum2,
-  TimelineResponse,
-} from '../src/interfaces';
+
+import {CLASSIFY_RESPONSE} from '../src/interfaces';
 import {Chatgpt} from '../src/chatgpt';
 import {Twitter} from '../src/twitter';
-import {
-  DynamoDB,
-  DynamoDBClient,
-  QueryCommand,
-  ScanCommand,
-} from '@aws-sdk/client-dynamodb';
+import {TimeLineService} from '../src/timeline.service';
+import {DynamoDBClient} from '@aws-sdk/client-dynamodb';
 import {DynamoDBDocument} from '@aws-sdk/lib-dynamodb';
 
 const enum PROMPT_TYPES {
   CLASSIFY = 1,
   TWITTER = 2,
 }
-
-const CLASSIFICATION_CATEGORIES = {
-  MOVIE: 'Movie',
-  TV: 'TV Shows',
-  MUSIC: 'Music',
-  PERSON: 'Person',
-  TRAVEL: 'Travel',
-  FINANCE: 'Finance',
-  CRYPTO: ' Digital Assets & Crypto',
-  NAN: 'NaN',
-};
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -76,6 +55,7 @@ export const handler: Handler = async (
   });
 
   const chatgpt = new Chatgpt(chatgptKey?.key);
+  const timeLineSvc = new TimeLineService(chatgpt);
 
   const seenTweets = await ddbDocClient.scan({
     TableName: tweetsTable,
@@ -95,15 +75,6 @@ export const handler: Handler = async (
   if (!posts.length) {
     return callback('no posts');
   }
-
-  const shareablePosts: {
-    id: string;
-    categories?: CLASSIFY_RESPONSE;
-    media: string[] | undefined;
-    fullText: string | undefined;
-    postId: string | undefined;
-    via: string | undefined;
-  }[] = [];
 
   const allPrompts = await ddbDocClient.scan({
     TableName: promptsTableName,
@@ -129,36 +100,9 @@ export const handler: Handler = async (
     return callback('no activeClassifyPrompt');
   }
 
-  await Promise.all(
-    posts.map(async tweet => {
-      if (tweet.fullText) {
-        const resp = await chatgpt.sendRequest(
-          tweet.fullText,
-          activeClassifyPrompt?.prompt
-        );
-
-        let parsedResp: CLASSIFY_RESPONSE = {};
-
-        try {
-          parsedResp = JSON.parse(resp ?? '{}');
-        } catch (error) {
-          console.log(JSON.stringify({error}));
-        }
-
-        const {primary, secondary} = parsedResp;
-
-        if (
-          primary === CLASSIFICATION_CATEGORIES.MOVIE ||
-          primary === CLASSIFICATION_CATEGORIES.TV ||
-          secondary === CLASSIFICATION_CATEGORIES.MOVIE ||
-          secondary === CLASSIFICATION_CATEGORIES.TV
-        ) {
-          shareablePosts.push({...tweet, categories: parsedResp});
-        }
-      }
-
-      return undefined;
-    })
+  const shareablePosts = await timeLineSvc.getSharablePosts(
+    posts,
+    activeClassifyPrompt?.prompt
   );
 
   console.log(JSON.stringify({shareablePosts: shareablePosts.length}));
@@ -187,7 +131,10 @@ export const handler: Handler = async (
       Item: {
         tweetId: iterator.id,
         sentDm: true,
-        categories: iterator.categories,
+        categories: {
+          primary: iterator.primary,
+          secondary: iterator.secondary,
+        },
         newTweet: answer,
       },
     });

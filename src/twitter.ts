@@ -1,7 +1,14 @@
 import axios, {AxiosRequestConfig} from 'axios';
 import {uuid} from 'uuidv4';
 
-import {Medum2, TimelineResponse} from './interfaces';
+import {Entry, Medum2, TimelineResponse, TwitterPost} from './interfaces';
+
+const CONSTANTS = {
+  FOLLOWERS_COUNT_THRESHOLD: 5000,
+  RETWEET_BY_ITSELF_COUNT_THRESHOLD: 5000,
+  RETWEET_WITH_FAVORITE_COUNT_THRESHOLD: 5000,
+  FAVORITE_COUNT_THRESHOLD: 5000,
+};
 
 export class Twitter {
   private _headers: {[key: string]: any};
@@ -20,8 +27,8 @@ export class Twitter {
     return s.replace(/https:\/\/t\.co\/\S*/g, '').trim();
   }
 
-  async getTimeLinePosts(seenTweetIdLookup: Object, seenTweetIds?: string[]) {
-    const data = JSON.stringify({
+  getData(seenTweetIds?: string[]) {
+    return JSON.stringify({
       variables: {
         count: 20,
         includePromotedContent: true,
@@ -55,24 +62,21 @@ export class Twitter {
       },
       queryId: 'zmpJ47b7DYqZ0sQzKJvbeA',
     });
+  }
 
+  async getTimeLinePosts(
+    seenTweetIdLookup: Object,
+    seenTweetIds?: string[]
+  ): Promise<TwitterPost[]> {
     const config = {
       method: 'post',
       maxBodyLength: Infinity,
       url: 'https://twitter.com/i/api/graphql/zmpJ47b7DYqZ0sQzKJvbeA/HomeTimeline',
       headers: this._headers,
-      data: data,
+      data: this.getData(seenTweetIds),
     };
 
     const timeLineResponse = await this._sendRequest<TimelineResponse>(config);
-
-    const posts: {
-      id: string;
-      media: string[] | undefined;
-      fullText: string | undefined;
-      postId: string | undefined;
-      via: string | undefined;
-    }[] = [];
 
     console.log(
       JSON.stringify({
@@ -82,38 +86,59 @@ export class Twitter {
       })
     );
 
-    timeLineResponse.data.home.home_timeline_urt.instructions?.forEach(ins => {
-      ins.entries?.forEach(entry => {
-        const tweetResult = entry.content.itemContent?.tweet_results.result;
-        const followersCount =
-          tweetResult?.core?.user_results.result.legacy.followers_count ?? 0;
-        const tweetLanguage = tweetResult?.legacy?.lang;
-        const retweetCount = tweetResult?.legacy?.retweet_count ?? 0;
-        const favoriteCount = tweetResult?.legacy?.favorite_count ?? 0;
+    const entries =
+      timeLineResponse.data.home.home_timeline_urt.instructions[0].entries;
 
-        if (
-          tweetResult?.legacy?.id_str &&
-          !(tweetResult?.legacy.id_str in seenTweetIdLookup) &&
-          !entry.entryId.includes('promoted') &&
-          followersCount > 50000 &&
-          (retweetCount > 5000 ||
-            (retweetCount > 500 && favoriteCount > 5000)) &&
-          tweetLanguage === 'en'
-        ) {
-          posts.push({
-            id: tweetResult?.legacy.id_str,
-            media: tweetResult?.legacy.entities.media?.map(m => m.display_url),
-            fullText: this.removeAllTwitterUrls(
-              tweetResult?.legacy.full_text ?? ''
-            ),
-            postId: tweetResult?.legacy.id_str,
-            via: this.getVia(tweetResult?.legacy.extended_entities?.media),
-          });
-        }
-      });
+    const filteredEntries = this.filterEntries(entries, seenTweetIdLookup);
+
+    const timeLinePosts = filteredEntries.map(entry => {
+      const tweetResult = entry.content.itemContent?.tweet_results.result;
+
+      return {
+        id: tweetResult?.legacy.id_str,
+        media: tweetResult?.legacy.entities.media?.map(m => m.display_url),
+        fullText: this.removeAllTwitterUrls(
+          tweetResult?.legacy.full_text ?? ''
+        ),
+        postId: tweetResult?.legacy.id_str,
+        via: this.getVia(tweetResult?.legacy.extended_entities?.media),
+      };
     });
 
-    return posts;
+    return timeLinePosts;
+  }
+
+  filterEntries(entries: Entry[], seenTweetIdLookup: Object) {
+    const filteredPosts = entries.filter(entry => {
+      const tweetResult = entry.content.itemContent?.tweet_results.result;
+      const followersCount =
+        tweetResult?.core?.user_results.result.legacy.followers_count ?? 0;
+      const tweetLanguage = tweetResult?.legacy?.lang;
+      const retweetCount = tweetResult?.legacy?.retweet_count ?? 0;
+      const favoriteCount = tweetResult?.legacy?.favorite_count ?? 0;
+
+      return (
+        tweetResult?.legacy?.id_str &&
+        !(tweetResult?.legacy.id_str in seenTweetIdLookup) &&
+        !entry.entryId.includes('promoted') &&
+        followersCount > CONSTANTS.FOLLOWERS_COUNT_THRESHOLD &&
+        this.checkPostRetweetFavoriteThresholds(retweetCount, favoriteCount) &&
+        tweetLanguage === 'en'
+      );
+    });
+
+    return filteredPosts;
+  }
+
+  checkPostRetweetFavoriteThresholds(
+    retweetCount: number,
+    favoriteCount: number
+  ) {
+    return (
+      retweetCount > CONSTANTS.RETWEET_BY_ITSELF_COUNT_THRESHOLD ||
+      (retweetCount > CONSTANTS.RETWEET_WITH_FAVORITE_COUNT_THRESHOLD &&
+        favoriteCount > CONSTANTS.FAVORITE_COUNT_THRESHOLD)
+    );
   }
 
   async sendDm(conversation_id: string, text: string) {
