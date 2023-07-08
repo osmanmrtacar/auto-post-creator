@@ -86,7 +86,7 @@ export class Twitter {
           tweetResult?.legacy?.id_str &&
           !(tweetResult?.legacy.id_str in seenTweetIdLookup) &&
           !entry.entryId.includes('promoted') &&
-          followersCount > 500000 &&
+          followersCount > 50000 &&
           retweetCount > 800 &&
           tweetLanguage === 'en'
         ) {
