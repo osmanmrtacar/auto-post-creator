@@ -63,15 +63,7 @@ export const handler: Handler = async (
   });
 
   if (!session?.header) {
-    return callback(null, {
-      statusCode: 404,
-      body: JSON.stringify({
-        type: 4,
-        data: {
-          content: 'No header',
-        },
-      }),
-    });
+    return callback('no session header');
   }
 
   const twitter = new Twitter(session?.header);
@@ -134,15 +126,7 @@ export const handler: Handler = async (
   console.log(!!activeClassifyPrompt);
 
   if (!activeClassifyPrompt) {
-    return callback(null, {
-      statusCode: 404,
-      body: JSON.stringify({
-        type: 4,
-        data: {
-          content: 'Hello, World.',
-        },
-      }),
-    });
+    return callback('no activeClassifyPrompt');
   }
 
   await Promise.all(
@@ -221,7 +205,7 @@ export const handler: Handler = async (
     body: JSON.stringify({
       type: 4,
       data: {
-        content: 'Hello, World.',
+        success: true,
       },
     }),
   });
