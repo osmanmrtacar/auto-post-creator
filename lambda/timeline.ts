@@ -98,10 +98,7 @@ export const handler: Handler = async (
     };
   }, {});
 
-  const posts = await twitter.getTimeLinePosts(
-    seenTweetIdLookup,
-    Object.keys(seenTweetIdLookup)
-  );
+  const posts = await twitter.getTimeLinePosts(seenTweetIdLookup);
 
   if (!posts.length) {
     return callback('no posts');
