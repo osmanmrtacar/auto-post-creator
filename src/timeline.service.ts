@@ -35,7 +35,7 @@ export class TimeLineService {
   async classifyPosts(posts: TwitterPost[], prompt: string) {
     return await Promise.all(
       posts.map(async post => {
-        const resp = await this._chatgpt.sendRequest(post.fullText, prompt);
+        const resp = await this._chatgpt.classification(post.fullText, prompt);
 
         let parsedResp: CLASSIFY_RESPONSE = {};
 

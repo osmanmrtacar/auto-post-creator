@@ -73,18 +73,7 @@ export class Chatgpt {
     this.openai = new OpenAIApi(configuration);
   }
 
-  async sendRequest(message: string, prompt: string) {
-    const messages: Array<ChatCompletionRequestMessage> = [
-      {
-        role: 'system',
-        content: prompt,
-      },
-      ...MESSAGES,
-      {
-        role: 'user',
-        content: message,
-      },
-    ];
+  async sendRequest(messages: Array<ChatCompletionRequestMessage>) {
     try {
       const completion = await this.openai.createChatCompletion({
         model: 'gpt-3.5-turbo',
@@ -99,5 +88,36 @@ export class Chatgpt {
         console.log(JSON.stringify({chatgptError: error.response?.data}));
       }
     }
+  }
+
+  async createNewTweet(message: string, prompt: string) {
+    const messages: Array<ChatCompletionRequestMessage> = [
+      {
+        role: 'system',
+        content: prompt,
+      },
+      ...MESSAGES,
+      {
+        role: 'user',
+        content: message,
+      },
+    ];
+
+    return this.sendRequest(messages);
+  }
+
+  async classification(message: string, prompt: string) {
+    const messages: Array<ChatCompletionRequestMessage> = [
+      {
+        role: 'system',
+        content: prompt,
+      },
+      {
+        role: 'user',
+        content: message,
+      },
+    ];
+
+    return this.sendRequest(messages);
   }
 }

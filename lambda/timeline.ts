@@ -112,12 +112,13 @@ export const handler: Handler = async (
       TableName: tweetsTable,
       Item: {
         tweetId: post.id,
+        seenDate: new Date().toISOString(),
       },
     });
   }
 
   for await (const iterator of shareablePosts.slice(0, 3)) {
-    const newTweet = await chatgpt.sendRequest(
+    const newTweet = await chatgpt.createNewTweet(
       iterator.fullText ?? '',
       activeTweetPrompt?.prompt
     );
