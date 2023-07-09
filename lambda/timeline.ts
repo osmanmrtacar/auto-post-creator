@@ -147,6 +147,7 @@ export const handler: Handler = async (
           secondary: iterator.secondary,
         },
         newTweet: answer,
+        seenDate: new Date().toISOString(),
       },
     });
 
