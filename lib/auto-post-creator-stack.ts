@@ -51,6 +51,7 @@ export class AutoPostCreatorStack extends cdk.Stack {
         name: 'tweetId',
         type: AttributeType.STRING,
       },
+      sortKey: {name: 'seenDate', type: AttributeType.STRING},
     });
 
     const timeLineLambda = new NodejsFunction(this, 'TimeLineHandler', {
