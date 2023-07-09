@@ -5,7 +5,6 @@ import {
   Handler,
 } from 'aws-lambda';
 
-import {CLASSIFY_RESPONSE} from '../src/interfaces';
 import {Chatgpt} from '../src/chatgpt';
 import {Twitter} from '../src/twitter';
 import {TimeLineService} from '../src/timeline.service';
