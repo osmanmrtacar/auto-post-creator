@@ -58,6 +58,14 @@ export const handler: Handler = async (
 
   const seenTweets = await ddbDocClient.scan({
     TableName: tweetsTable,
+    IndexName: 'dateIndex',
+    FilterExpression: '#seenDate > :seenDate',
+    ExpressionAttributeValues: {
+      ':seenDate': new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    },
+    ExpressionAttributeNames: {
+      '#seenDate': 'seenDate',
+    },
   });
 
   const seenTweetIds = seenTweets.Items?.map(tweets => tweets.tweetId);
@@ -69,7 +77,10 @@ export const handler: Handler = async (
     };
   }, {});
 
-  const posts = await twitter.getTimeLinePosts(seenTweetIdLookup);
+  const posts = await twitter.getTimeLinePosts(
+    seenTweetIdLookup,
+    Object.keys(seenTweetIdLookup)
+  );
 
   if (!posts.length) {
     return callback('no posts');
