@@ -53,8 +53,12 @@ export class AutoPostCreatorStack extends cdk.Stack {
       },
     });
 
-    tweetsTable.addLocalSecondaryIndex({
+    tweetsTable.addGlobalSecondaryIndex({
       indexName: 'dateIndex',
+      partitionKey: {
+        name: 'tweetId',
+        type: AttributeType.STRING,
+      },
       sortKey: {name: 'seenDate', type: AttributeType.STRING},
     });
 
